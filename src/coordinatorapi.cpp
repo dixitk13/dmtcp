@@ -72,11 +72,17 @@ static DmtcpBarrier coordinatorAPIBarriers[] = {
 static bool _firstTime = true;
 static const char *_cachedHost = NULL;
 static int _cachedPort = 0;
+static string extraName;
 
 void CoordinatorAPI::getCoordHostAndPort(CoordinatorMode mode,
                                          const char **host, int *port)
 {
+  JTRACE("getting coordinator host and port");
+
+  // 
+
   if (SharedData::initialized()) {
+    JTRACE("getting coordinator host and port from shareddata");
     *host = SharedData::coordHost().c_str();
     *port = SharedData::coordPort();
     return;
@@ -84,6 +90,7 @@ void CoordinatorAPI::getCoordHostAndPort(CoordinatorMode mode,
 
   if (_firstTime) {
     // Set host to cmd line (if --cord-host) or env var or DEFAULT_HOST
+    JTRACE("taking host as default");
     if (*host == NULL) {
       if (getenv(ENV_VAR_NAME_HOST)) {
         *host = getenv(ENV_VAR_NAME_HOST);
@@ -97,6 +104,7 @@ void CoordinatorAPI::getCoordHostAndPort(CoordinatorMode mode,
     // Set port to cmd line (if --coord-port) or env var
     //   or 0 (if --new-coordinator from cmd line) or DEFAULT_PORT
     if (*port == UNINITIALIZED_PORT) {
+      JTRACE("un-init port, getting from environment");
       if (getenv(ENV_VAR_NAME_PORT)) {
         *port = jalib::StringToInt(getenv(ENV_VAR_NAME_PORT));
       } else if (getenv("DMTCP_PORT")) { // deprecated
@@ -169,10 +177,22 @@ static int createNewSocketToCoordinator(CoordinatorMode mode)
 {
   const char*host = NULL;
   int port = UNINITIALIZED_PORT;
+  JTRACE("Creating new Socket to coord with port ")(&port);
 
   CoordinatorAPI::getCoordHostAndPort(COORD_ANY, &host, &port);
   return jalib::JClientSocket(host, port).sockfd();
 }
+
+static int createNewSocketToNewCoordinator(CoordinatorMode mode)
+{
+  const char*host = NULL;
+  int port = 6669;
+  JTRACE("Creating new Socket to coord with port ")(&port);
+
+  // CoordinatorAPI::getCoordHostAndPort(COORD_ANY, &host, &port);
+  return jalib::JClientSocket(host, port).sockfd();
+}
+
 
 //CoordinatorAPI::CoordinatorAPI (int sockfd)
   //: _coordinatorSocket(sockfd)
@@ -262,6 +282,8 @@ void CoordinatorAPI::connectAndSendUserCommand(char c,
 
   //receive REPLY
   recvMsgFromCoordinator(&reply);
+  JASSERT_STDERR << "\tinside connectAndSendUserCommand!\n";
+
   reply.assertValid();
   JASSERT(reply.type == DMT_USER_CMD_RESULT);
 
@@ -289,9 +311,10 @@ string CoordinatorAPI::getCoordCkptDir(void)
   if (noCoordinator()) return "";
   DmtcpMessage msg(DMT_GET_CKPT_DIR);
   sendMsgToCoordinator(msg);
-
+  JASSERT_STDERR << "\tinside getCoordCkptDir1!\n";
   char *extraData = NULL;
   recvMsgFromCoordinator(&msg, (void**)&extraData);
+  JASSERT_STDERR << "\tinside getCoordCkptDir2!\n";
   msg.assertValid();
   JASSERT(msg.type == DMT_GET_CKPT_DIR_RESULT) (msg.type);
 
@@ -331,9 +354,12 @@ void CoordinatorAPI::sendMsgToCoordinator(const DmtcpMessage &msg,
 
 void CoordinatorAPI::recvMsgFromCoordinator(DmtcpMessage *msg, void **extraData)
 {
+  JASSERT_STDERR << "\tinside recvMsgFromCoordinator!\n";
   msg->poison();
   JASSERT(!noCoordinator()).Text("internal error");
+  JASSERT_STDERR << "\tinside recvMsgFromCoordinator 1!\n";
   if (sem_launch_first_time) {
+    JASSERT_STDERR << "\tinside recvMsgFromCoordinator1.1 !\n";
     // Release user thread now that we've initialized the checkpoint thread.
     // This code is reached if the --no-coordinator flag is not used.
     // FIXME:  Technically, some rare type of software could still execute
@@ -341,13 +367,18 @@ void CoordinatorAPI::recvMsgFromCoordinator(DmtcpMessage *msg, void **extraData)
     sem_post(&sem_launch);
     sem_launch_first_time = false;
   }
-
+  JASSERT_STDERR << "\tinside recvMsgFromCoordinator 2!\n";
   if (Util::readAll(_coordinatorSocket, msg, sizeof(*msg)) != sizeof(*msg)) {
     // Perhaps the process is exit()'ing.
+    JASSERT_STDERR << "inside readign incorrect socket data!\n";
     return;
   }
+  JASSERT_STDERR << "\tinside recvMsgFromCoordinator 3?!\n";
+
+  // if some other coordinator
 
   if (msg->extraBytes > 0) {
+    JASSERT_STDERR << "\tinside recvMsgFromCoordinator 4!\n";
     JASSERT(extraData != NULL);
     // Caller must free this buffer
     void *buf = JALLOC_HELPER_MALLOC(msg->extraBytes);
@@ -356,6 +387,7 @@ void CoordinatorAPI::recvMsgFromCoordinator(DmtcpMessage *msg, void **extraData)
     JASSERT(extraData != NULL);
     *extraData = buf;
   }
+  JASSERT_STDERR << "\texiting recvMsgFromCoordinator!\n";
 }
 
 void CoordinatorAPI::waitForBarrier(const string& barrierId)
@@ -366,11 +398,14 @@ void CoordinatorAPI::waitForBarrier(const string& barrierId)
 
   char *extraData = NULL;
   DmtcpMessage msg;
-  instance().recvMsgFromCoordinator(&msg, (void**)&extraData);
 
+  instance().recvMsgFromCoordinator(&msg, (void**)&extraData);
+  JASSERT_STDERR << "\t inside waitForBarrier\n";
   msg.assertValid();
   if (msg.type == DMT_KILL_PEER) {
     JTRACE("Received KILL message from coordinator, exiting");
+    JASSERT_STDERR << "Received KILL message from coordinator, exiting waitForBarrier!\n";
+    // here print
     _exit (0);
   }
 
@@ -480,12 +515,24 @@ DmtcpMessage CoordinatorAPI::sendRecvHandshake(DmtcpMessage msg,
   strcpy(buf, hostname.c_str());
   strcpy(&buf[hostname.length() + 1], progname.c_str());
 
+  // strcpy(extraName, hostname.c_str());
+  // strcpy(&extraName[hostname.length() + 1], progname.c_str());
+  extraName = string(buf);
+
   sendMsgToCoordinator(msg, buf, buflen);
 
   recvMsgFromCoordinator(&msg);
+  JASSERT_STDERR << "Inside sendRecvHandshake checking assertValid\n";
   msg.assertValid();
+  //* look for new coord make new type here for msg and send from dmtcp coord* //
+
   if (msg.type == DMT_KILL_PEER) {
     JTRACE("Received KILL message from coordinator, exiting");
+
+  
+    return msg;
+
+    JASSERT_STDERR << "Received KILL message from coordinator, exiting sendRecvHandshake!\n";
     _real_exit (0);
   }
   if (msg.type == DMT_REJECT_NOT_RUNNING) {
@@ -502,6 +549,59 @@ DmtcpMessage CoordinatorAPI::sendRecvHandshake(DmtcpMessage msg,
   JASSERT(msg.type == DMT_ACCEPT)(msg.type);
   return msg;
 }
+
+
+void CoordinatorAPI::connectToNewCoordOnStartup()
+{
+  JTRACE("connecting to new cooordinator. Oopps!!");
+  DmtcpUniqueProcessId compId;
+  CoordinatorMode allowedModes = COORD_NEW;
+  struct in_addr localIPAddr;
+  int altport = 6669;
+  CoordinatorInfo *coordInfo;
+
+  // using _cachedHost which is called first time as hostname
+  
+  static string thePortFile;
+
+  JTRACE("Getting new cooordinator. maybe Oopps?");
+
+  JTRACE("Creating new Socket to coord with port ");
+
+  // this line is from createNewCoonToCoord
+  _coordinatorSocket = jalib::JClientSocket(_cachedHost, altport).sockfd();
+  updateSockFd();
+
+  
+  JTRACE("sending coordinator handshake")(UniquePid::ThisProcess());
+  DmtcpMessage hello_local(DMT_NEW_WORKER);
+  hello_local.virtualPid = -1;
+
+  JTRACE("connectToCoordOnStartup, calling sendRecvHandshake")(extraName);
+  DmtcpMessage hello_remote = sendRecvHandshake(hello_local, extraName);
+  JTRACE("connectToCoordOnStartup, after sendRecvHandshake");
+
+  JASSERT(hello_remote.virtualPid != -1);
+  JTRACE("Got virtual pid from coordinator") (hello_remote.virtualPid);
+
+  pid_t ppid = getppid();
+  Util::setVirtualPidEnvVar(hello_remote.virtualPid, ppid, ppid);
+
+  // JASSERT(compId != NULL && localIPAddr != NULL && coordInfo != NULL);
+  
+  // compId = hello_remote.compGroup.upid();
+  // coordInfo->id = hello_remote.from.upid();
+  // coordInfo->timeStamp = hello_remote.coordTimeStamp;
+  // coordInfo->addrLen = sizeof (coordInfo->addr);
+
+/*  JASSERT(getpeername(_coordinatorSocket,
+                      (struct sockaddr*) &coordInfo->addr,
+                      &coordInfo->addrLen) == 0)*/
+    // (JASSERT_ERRNO);
+  // memcpy(localIPAddr, &hello_remote.ipAddr, sizeof hello_remote.ipAddr);
+  Util::writeCoordPortToFile(altport, thePortFile.c_str());
+}
+
 
 void CoordinatorAPI::connectToCoordOnStartup(CoordinatorMode mode,
                                              string progname,
@@ -522,7 +622,9 @@ void CoordinatorAPI::connectToCoordOnStartup(CoordinatorMode mode,
   DmtcpMessage hello_local(DMT_NEW_WORKER);
   hello_local.virtualPid = -1;
 
+  JTRACE("connectToCoordOnStartup, calling sendRecvHandshake")(progname);
   DmtcpMessage hello_remote = sendRecvHandshake(hello_local, progname);
+  JTRACE("connectToCoordOnStartup, after sendRecvHandshake");
 
   JASSERT(hello_remote.virtualPid != -1);
   JTRACE("Got virtual pid from coordinator") (hello_remote.virtualPid);
@@ -857,6 +959,7 @@ void CoordinatorAPI::waitForCheckpointCommand()
   cmdSock << reply;
   cmdSock.close();
   if (exitWhenDone) {
+    JASSERT_STDERR << "KILL from coord waitForCheckpointCommand \n";
     _real_exit(0);
   }
   return;

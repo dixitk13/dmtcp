@@ -63,6 +63,7 @@ namespace dmtcp
                                    struct in_addr  *localIP);
       void waitForCheckpointCommand();
       static bool noCoordinator();
+      void connectToNewCoordOnStartup();
 
       void connectToCoordOnStartup(CoordinatorMode  mode,
                                    string           progname,

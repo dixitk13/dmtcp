@@ -311,15 +311,16 @@ void DmtcpCoordinator::handleUserCommand(char cmd, DmtcpMessage* reply /*= NULL*
     break;
   case 'q': case 'Q':
   {
-    JNOTE ( "killing all connected peers and quitting ..." );
-    broadcastMessage ( DMT_KILL_PEER );
+    JNOTE ( "Peers Look for another coord, I am quitting ..." );
+    broadcastMessage ( DMT_LOOK_ANOTHER_COORD );
     JASSERT_STDERR << "DMTCP coordinator exiting... (per request)\n";
+    JASSERT_STDERR << "closing sockets now!\n";
     for (size_t i = 0; i < clients.size(); i++) {
       clients[i]->sock().close();
     }
     listenSock->close();
-    preExitCleanup();
-    JTRACE ("Exiting ...");
+    preExitCleanup(); 
+    JTRACE ("Exiting no cleanup...");
     exit ( 0 );
     break;
   }

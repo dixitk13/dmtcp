@@ -64,7 +64,7 @@ namespace dmtcp
     DMT_BARRIER_LIST,
 
     DMT_KILL_PEER,           // send kill message to peer
-
+    DMT_LOOK_ANOTHER_COORD,  // look for another coord
     DMT_REGISTER_NAME_SERVICE_DATA,
     DMT_REGISTER_NAME_SERVICE_DATA_SYNC,
     DMT_REGISTER_NAME_SERVICE_DATA_SYNC_RESPONSE,

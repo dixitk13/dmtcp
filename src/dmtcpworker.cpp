@@ -384,6 +384,7 @@ void DmtcpWorker::waitForSuspendMessage()
     CoordinatorAPI::instance().waitForCheckpointCommand();
     ProcessInfo::instance().numPeers(1);
     ProcessInfo::instance().compGroup(SharedData::getCompId());
+    JTRACE("waitForSuspendMessage dmtcp_no_coordinator");
     return;
   }
 
@@ -393,6 +394,7 @@ void DmtcpWorker::waitForSuspendMessage()
     ckptThreadPerformExit();
   }
   if (exitInProgress()) {
+      JTRACE("waitForSuspendMessage exitInProgress");
     ThreadSync::destroyDmtcpWorkerLockUnlock();
     ckptThreadPerformExit();
   }
@@ -401,26 +403,38 @@ void DmtcpWorker::waitForSuspendMessage()
 
   DmtcpMessage msg;
   CoordinatorAPI::instance().recvMsgFromCoordinator(&msg);
-
+  JTRACE("****in waitForSuspendMessage exit receive message from coordinator");
   if (exitInProgress()) {
     ThreadSync::destroyDmtcpWorkerLockUnlock();
     ckptThreadPerformExit();
   }
 
   msg.assertValid();
-  if (msg.type == DMT_KILL_PEER) {
+
+  // look for new coord 
+  if( msg.type == DMT_LOOK_ANOTHER_COORD){
+
+    JTRACE("Received KILL message from coordinator, trying my new function");    
+    CoordinatorAPI::instance().connectToNewCoordOnStartup();
+    msg.type = DMT_LOOK_ANOTHER_COORD;
+    _exitAfterCkpt = msg.exitAfterCkpt; 
+  }
+
+  if (msg.type == DMT_KILL_PEER) { 
+
     JTRACE("Received KILL message from coordinator, exiting");
+    _exitAfterCkpt = msg.exitAfterCkpt;  
     _exit (0);
   }
 
-  JASSERT(msg.type == DMT_DO_SUSPEND) (msg.type);
+  JASSERT(msg.type == DMT_DO_SUSPEND || msg.type == DMT_LOOK_ANOTHER_COORD) (msg.type);
 
   // Coordinator sends some computation information along with the SUSPEND
   // message. Extracting that.
   SharedData::updateGeneration(msg.compGroup.computationGeneration());
   JASSERT(SharedData::getCompId() == msg.compGroup.upid())
     (SharedData::getCompId()) (msg.compGroup);
-
+  JTRACE("Coordinator sends some computation information + SUSPEND");
   _exitAfterCkpt = msg.exitAfterCkpt;
 }
 
@@ -434,10 +448,13 @@ void DmtcpWorker::acknowledgeSuspendMsg()
   CoordinatorAPI::instance().sendMsgToCoordinator(DmtcpMessage(DMT_OK));
 
   DmtcpMessage msg;
+  
   CoordinatorAPI::instance().recvMsgFromCoordinator(&msg);
+
   msg.assertValid();
   if (msg.type == DMT_KILL_PEER) {
     JTRACE("Received KILL message from coordinator, exiting");
+    
     _exit (0);
   }
 
