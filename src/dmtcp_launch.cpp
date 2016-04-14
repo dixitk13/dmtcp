@@ -509,14 +509,23 @@ int main ( int argc, char** argv )
   DmtcpUniqueProcessId compId;
   CoordinatorInfo coordInfo;
   struct in_addr localIPAddr;
+  // int altport = 6669;
+
+  JTRACE("Init the port first time");
   int port = (portStr ? jalib::StringToInt(portStr) : UNINITIALIZED_PORT);
+  
   // Initialize host and port now.  Will be used in low-level functions.
   CoordinatorAPI::getCoordHostAndPort(allowedModes, &host, &port);
+  
+  JTRACE("Before connecting to connectToCoordOnStartup");
   CoordinatorAPI::instance().connectToCoordOnStartup(allowedModes, argv[0],
                                                      &compId, &coordInfo,
                                                      &localIPAddr);
+
+  JTRACE("After connecting to connectToCoordOnStartup");
   // If port was 0, we'll get new random port when coordinator starts up.
   CoordinatorAPI::getCoordHostAndPort(allowedModes, &host, &port);
+  JTRACE("getting coord host and port and writing to portfile")(thePortFile.c_str());
   Util::writeCoordPortToFile(port, thePortFile.c_str());
 
   string installDir =

@@ -352,6 +352,12 @@ void CoordinatorAPI::sendMsgToCoordinator(const DmtcpMessage &msg,
   sendMsgToCoordinator(msg, data.c_str(), data.length() + 1);
 }
 
+void CoordinatorAPI::recvBroadCastMsgFromCoord(DmtcpMessage *msg)
+{
+  Util::readAll(_coordinatorSocket, msg, sizeof(*msg));
+  return;
+}
+
 void CoordinatorAPI::recvMsgFromCoordinator(DmtcpMessage *msg, void **extraData)
 {
   JASSERT_STDERR << "\tinside recvMsgFromCoordinator!\n";
@@ -522,7 +528,8 @@ DmtcpMessage CoordinatorAPI::sendRecvHandshake(DmtcpMessage msg,
   sendMsgToCoordinator(msg, buf, buflen);
 
   recvMsgFromCoordinator(&msg);
-  JASSERT_STDERR << "Inside sendRecvHandshake checking assertValid\n";
+  
+  JTRACE("Inside sendRecvHandshake checking assertValid ")(msg.type);
   msg.assertValid();
   //* look for new coord make new type here for msg and send from dmtcp coord* //
 
@@ -531,8 +538,8 @@ DmtcpMessage CoordinatorAPI::sendRecvHandshake(DmtcpMessage msg,
 
   
     return msg;
-
-    JASSERT_STDERR << "Received KILL message from coordinator, exiting sendRecvHandshake!\n";
+    JTRACE("Received KILL message from coordinator, exiting sendRecvHandshake ")(msg.type);
+    
     _real_exit (0);
   }
   if (msg.type == DMT_REJECT_NOT_RUNNING) {
@@ -584,7 +591,7 @@ void CoordinatorAPI::connectToNewCoordOnStartup()
   JASSERT(hello_remote.virtualPid != -1);
   JTRACE("Got virtual pid from coordinator") (hello_remote.virtualPid);
 
-  pid_t ppid = getppid();
+  pid_t ppid =   getppid();
   Util::setVirtualPidEnvVar(hello_remote.virtualPid, ppid, ppid);
 
   // JASSERT(compId != NULL && localIPAddr != NULL && coordInfo != NULL);

@@ -84,6 +84,7 @@ namespace dmtcp
 
       bool isValid() { return _coordinatorSocket != -1; }
 
+      void recvBroadCastMsgFromCoord(DmtcpMessage *msg);
       void sendMsgToCoordinator(DmtcpMessage msg,
                                 const void *extraData = NULL,
                                 size_t len = 0);

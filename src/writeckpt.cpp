@@ -401,7 +401,7 @@ static void mtcp_write_non_rwx_and_anonymous_pages(int fd, Area *orig_area)
 static void writememoryarea (int fd, Area *area, int stack_was_seen)
 {
   void *addr = area->addr;
-
+  // sleep(1);
   if (!(area -> flags & MAP_ANONYMOUS))
     JTRACE("save region") (addr) (area->size) (area->name) (area->offset);
   else if (area -> name[0] == '\0')

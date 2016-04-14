@@ -148,7 +148,7 @@ void ThreadList::init()
    * new motherpid. We also assume that GS uses the first GDT entry for its
    * descriptor.
    */
-
+  JTRACE("################ ENTER ############");
   /* libc/getpid can lie if we had used kernel fork() instead of libc fork(). */
   motherpid = THREAD_REAL_TID();
   TLSInfo_VerifyPidTid(motherpid, motherpid);
@@ -184,6 +184,8 @@ void ThreadList::init()
   while (-1 == sem_wait(&sem_launch) && errno == EINTR)
     errno = 0;
   sem_destroy(&sem_launch);
+
+    JTRACE("################ EXIT ############");
 }
 
 /*****************************************************************************
@@ -193,6 +195,7 @@ void ThreadList::init()
 void ThreadList::initThread(Thread* th, int (*fn)(void*), void *arg, int flags,
                             int *ptid, int *ctid)
 {
+  JTRACE("################ ENTER ############");
   /* Save exactly what the caller is supplying */
   th->fn    = fn;
   th->arg   = arg;
@@ -218,6 +221,7 @@ void ThreadList::initThread(Thread* th, int (*fn)(void*), void *arg, int flags,
    * thread is created to make sure that struct pthread has the correct value.
    */
   TLSInfo_UpdatePid();
+    JTRACE("################ EXIT ############");
 }
 
 /*****************************************************************************

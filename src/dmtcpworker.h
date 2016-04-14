@@ -49,6 +49,8 @@ namespace dmtcp
       static void postCheckpoint();
       static void postRestart();
 
+      static void checkForDeadCoord();
+      
       static void resetOnFork();
       static void cleanupWorker();
 

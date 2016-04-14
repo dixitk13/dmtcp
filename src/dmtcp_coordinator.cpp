@@ -698,7 +698,7 @@ void DmtcpCoordinator::onConnect()
 
   DmtcpMessage hello_remote;
   hello_remote.poison();
-  JTRACE("Reading from incoming connection...");
+  JTRACE("Reading from incoming connection...")(hello_remote.type);
   remote >> hello_remote;
   if (!remote.isValid()) {
     remote.close();
@@ -708,7 +708,7 @@ void DmtcpCoordinator::onConnect()
   if (hello_remote.type == DMT_NAME_SERVICE_WORKER) {
     CoordClient *client = new CoordClient(remote, &remoteAddr, remoteLen,
 		                          hello_remote);
-
+    JTRACE(" type is DMT_NAME_SERVICE_WORKER ");
     addDataSocket(client);
     return;
   }
@@ -769,7 +769,7 @@ void DmtcpCoordinator::onConnect()
 
   // If no client is connected to Coordinator, then there can be only zero data
   // sockets OR there can be one data socket and that should be STDIN.
-  if (clients.size() == 0) {
+  if (clients.size() == 0) {  
     initializeComputation();
   }
 
@@ -788,6 +788,8 @@ void DmtcpCoordinator::onConnect()
     client->virtualPid(hello_remote.from.pid());
     _virtualPidToClientMap[client->virtualPid()] = client;
   } else if (hello_remote.type == DMT_NEW_WORKER) {
+    
+    JTRACE(" DMT_NEW_WORKER.. state ")(hello_remote.state);
     JASSERT(hello_remote.state == WorkerState::RUNNING ||
             hello_remote.state == WorkerState::UNKNOWN);
     JASSERT(hello_remote.virtualPid == -1);
@@ -1022,8 +1024,9 @@ bool DmtcpCoordinator::startCheckpoint()
     JNOTE("starting checkpoint; incrementing generation; suspending all nodes")
       (s.numPeers) (compId.computationGeneration());
     // Pass number of connected peers to all clients
+      
     broadcastMessage(DMT_DO_SUSPEND);
-
+    sleep(4);
     // Suspend Message has been sent but the workers are still in running
     // state.  If the coordinator receives another checkpoint request from user
     // at this point, it should fail.
@@ -1054,12 +1057,14 @@ void DmtcpCoordinator::broadcastMessage(DmtcpMessageType type,
   }
 
   JTRACE ("sending message")( type );
+
   for (size_t i = 0; i < clients.size(); i++) {
     clients[i]->sock() << msg;
     if (extraBytes > 0) {
       clients[i]->sock().writeAll((const char*) extraData, extraBytes);
     }
   }
+
   workersAtCurrentBarrier = 0;
 }
 

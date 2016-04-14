@@ -151,7 +151,7 @@ void Util::initializeLogFile(string tmpDir, string procname, string prevLogPath)
   }
   a << "\n========================================\n";
 
-  JLOG(a.str().c_str());
+  // JLOG(a.str().c_str());
 #else
   JASSERT_SET_LOG("", tmpDir, UniquePid::ThisProcess().toString());
 #endif
