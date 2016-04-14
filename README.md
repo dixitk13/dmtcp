@@ -16,7 +16,7 @@ DMTCP supports the commonly used OFED API for InfiniBand, as well as its
 integration with various implementations of MPI, and resource managers
 (e.g., SLURM).
 
-To install DMTCP, see [INSTALL.md](INSTALL.md).
+To  install DMTCP, see [INSTALL.md](INSTALL.md).
 
 For an overview DMTCP, see [QUICK-START.md](QUICK-START.md).
 
