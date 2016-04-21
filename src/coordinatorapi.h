@@ -28,6 +28,8 @@
 #include "shareddata.h"
 #include "syscallwrappers.h"
 #include "../jalib/jalloc.h"
+#include <zookeeper/zookeeper.h>
+
 
 namespace dmtcp
 {
@@ -64,6 +66,14 @@ namespace dmtcp
       void waitForCheckpointCommand();
       static bool noCoordinator();
       void connectToNewCoordOnStartup();
+
+    
+
+
+      // void watcher(zhandle_t *zzh, int type, int state, const char *path,
+      //        void* context);
+      void leaderFinding(zhandle_t *zh);
+      void initZooHandle();
 
       void connectToCoordOnStartup(CoordinatorMode  mode,
                                    string           progname,
@@ -121,5 +131,9 @@ namespace dmtcp
       int _nsSock;
   };
 }
-
+namespace zookeeper{
+  #include <zookeeper/zookeeper.h>
+  void watcher_for_wget(zhandle_t *zzh, int type, int state, const char *path,
+     void* context);
+}
 #endif
