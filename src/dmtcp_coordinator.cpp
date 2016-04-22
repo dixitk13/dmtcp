@@ -80,6 +80,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <zookeeper/zookeeper.h>
+
 #undef min
 #undef max
 
@@ -148,6 +150,11 @@ static int blockUntilDoneRemote = -1;
 
 static DmtcpCoordinator prog;
 
+/* master coord starts */
+static zhandle_t *zh;
+static int connected;
+struct String_vector myvector; 
+
 /* The coordinator can receive a second checkpoint request while processing the
  * first one.  If the second request comes at a point where the coordinator has
  * broadcast DMT_DO_SUSPEND message but the workers haven't replied, the
@@ -193,6 +200,7 @@ static time_t ckptTimeStamp = -1;
 static LookupService lookupService;
 
 static string coordHostname;
+
 static struct in_addr localhostIPAddr;
 
 static string tmpDir;
@@ -682,6 +690,38 @@ void DmtcpCoordinator::initializeComputation()
 
   ckptBarriers.clear();
   restartBarriers.clear();
+}
+
+void create_ephemeral_sequential_node(char *value){
+  printf("creating node, please implement me\n");
+
+
+  char master_znode_base_path[] = "/master/dmtcp_coord_";
+
+  int rc = zoo_acreate(zh, master_znode_base_path, value, 14,
+    &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, 
+    NULL, NULL);
+
+    if(rc == ZOK){
+      printf("creating a node with my data \n");
+    }else{
+        fprintf(stderr, "Error in creating znode %d\n", rc);  
+         return;
+    }
+}
+
+void initZooHandle(){
+
+    zh = zookeeper_init("localhost:2181", NULL, 30000, 0, 0, 0);
+    if(!zh){
+        printf("error");
+        return;
+    }
+    fprintf(stderr, "Opened zookeeper\n");  
+}
+
+void deleteZooHandle(){
+    zookeeper_close(zh);
 }
 
 void DmtcpCoordinator::onConnect()
@@ -1412,6 +1452,9 @@ int main ( int argc, char** argv )
   }
 
   thePort = listenSock->port();
+
+
+
   if (!thePortFile.empty()) {
     Util::writeCoordPortToFile(thePort, thePortFile.c_str());
   }
@@ -1438,7 +1481,7 @@ int main ( int argc, char** argv )
   }
 #else
   if (!quiet) {
-    fprintf(stderr, "dmtcp_coordinator starting..."
+    fprintf(stderr, "new dmtcp_coordinator starting..."
             "\n    Host: %s (%s)"
             "\n    Port: %d"
             "\n    Checkpoint Interval: ",
@@ -1449,6 +1492,30 @@ int main ( int argc, char** argv )
       fprintf(stderr, "%d", theCheckpointInterval);
     fprintf(stderr, "\n    Exit on last client: %d\n", exitOnLast);
   }
+
+  static char value[] = "localhost:9219";
+
+  initZooHandle();
+
+  // create_ephemeral_sequential_node(value);
+  // char hostname[HOST_NAME_MAX];
+
+  char zoodata[14];
+  printf("hello\n");
+  //strlen(inet_ntoa(localhostIPAddr))+strlen(portStr)+1)
+  // if((zoodata = (char *) malloc(14)) != NULL){
+      // zoodata[0] = '\0';   // ensures the memory is an empty string
+      // strcat(zoodata, inet_ntoa(localhostIPAddr));
+      // strcat(zoodata, portStr);
+  // } else {
+  //     printf("malloc failed!\n");
+  //    // exit?
+  // }
+  
+  printf("myhostname %s \n", coordHostname.c_str());
+  printf("myportnumber %d \n", thePort);
+  printf("myzoodata %s \n", zoodata);
+  
 #endif
 
   if (daemon) {
