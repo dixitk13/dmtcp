@@ -82,6 +82,7 @@
 #include <fcntl.h>
 #include <zookeeper/zookeeper.h>
 
+
 #undef min
 #undef max
 
@@ -692,22 +693,54 @@ void DmtcpCoordinator::initializeComputation()
   restartBarriers.clear();
 }
 
-void create_ephemeral_sequential_node(char *value){
+
+void zktest_string_completion (int RC, const  char * name, const  void * Data)
+{
+    if (! RC) {
+        fprintf (stderr, "znode created =%s  " , name);
+    }
+}
+
+void create_ephemeral_sequential_node(const char* value, int portInt){
   printf("creating node, please implement me\n");
 
+  char res[100];
+  
 
+  strcpy(res, value);
+
+  strcat(res, ":");
+
+  
+  // strcat(res, (char) thePort);
+
+  char strPort[10];
+  sprintf(strPort, "%d", portInt);
+  printf("ssss %s\n", strPort);
+  
+  strcat(res, strPort);
+
+  printf("data => %s\n", res);
+
+  // char value1[] = "localhost-dixitk13-Virtu:921912";
   char master_znode_base_path[] = "/master/dmtcp_coord_";
+  // string strval = value;
+  // string test = strcat(value , portString);
 
-  int rc = zoo_acreate(zh, master_znode_base_path, value, 14,
+
+  // char c = portno;
+  // int rc = 
+  zoo_acreate(zh, master_znode_base_path, res, strlen(res),
     &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, 
-    NULL, NULL);
-
+    zktest_string_completion, NULL);
+/*
     if(rc == ZOK){
       printf("creating a node with my data \n");
     }else{
         fprintf(stderr, "Error in creating znode %d\n", rc);  
          return;
     }
+  */
 }
 
 void initZooHandle(){
@@ -1064,9 +1097,11 @@ bool DmtcpCoordinator::startCheckpoint()
     JNOTE("starting checkpoint; incrementing generation; suspending all nodes")
       (s.numPeers) (compId.computationGeneration());
     // Pass number of connected peers to all clients
-      
+    printf("Sleeping for 4 seconds\n");  
+    // sleep(8);
     broadcastMessage(DMT_DO_SUSPEND);
-    sleep(4);
+    
+    
     // Suspend Message has been sent but the workers are still in running
     // state.  If the coordinator receives another checkpoint request from user
     // at this point, it should fail.
@@ -1493,15 +1528,20 @@ int main ( int argc, char** argv )
     fprintf(stderr, "\n    Exit on last client: %d\n", exitOnLast);
   }
 
-  static char value[] = "localhost:9219";
+  // char value[] = "localhost:9219";
 
   initZooHandle();
 
-  // create_ephemeral_sequential_node(value);
-  // char hostname[HOST_NAME_MAX];
+  // if ( portStr == NULL ){
+  //   portStr = getenv("DMTCP_PORT"); // deprecated
+  // } 
+  
+  const char* hostname = coordHostname.c_str();
+ 
+  create_ephemeral_sequential_node(hostname, thePort);
 
-  char zoodata[14];
-  printf("hello\n");
+  // char zoodata[14];
+  
   //strlen(inet_ntoa(localhostIPAddr))+strlen(portStr)+1)
   // if((zoodata = (char *) malloc(14)) != NULL){
       // zoodata[0] = '\0';   // ensures the memory is an empty string
@@ -1512,9 +1552,8 @@ int main ( int argc, char** argv )
   //    // exit?
   // }
   
-  printf("myhostname %s \n", coordHostname.c_str());
+  printf("myhostname %s \n", hostname);
   printf("myportnumber %d \n", thePort);
-  printf("myzoodata %s \n", zoodata);
   
 #endif
 

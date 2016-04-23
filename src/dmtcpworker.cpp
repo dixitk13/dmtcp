@@ -414,7 +414,8 @@ void DmtcpWorker::waitForSuspendMessage()
 
   // look for new coord 
   if( msg.type == DMT_LOOK_ANOTHER_COORD || msg.type == DMT_NULL ){
-
+    printf("\tsleeping for 5 seconds \n");
+    sleep(3);    
     JTRACE("Received KILL/NULL message from coordinator, trying my new function ")(msg.type);    
     CoordinatorAPI::instance().connectToNewCoordOnStartup();
     msg.type = DMT_LOOK_ANOTHER_COORD;
@@ -430,12 +431,13 @@ void DmtcpWorker::waitForSuspendMessage()
   }
 
   JASSERT(msg.type == DMT_DO_SUSPEND || msg.type == DMT_LOOK_ANOTHER_COORD) (msg.type);
-
+  
+  
   // Coordinator sends some computation information along with the SUSPEND
   // message. Extracting that.
   SharedData::updateGeneration(msg.compGroup.computationGeneration());
-  JASSERT(SharedData::getCompId() == msg.compGroup.upid())
-    (SharedData::getCompId()) (msg.compGroup);
+  // JASSERT(SharedData::getCompId() == msg.compGroup.upid())
+  //   (SharedData::getCompId()) (msg.compGroup);
   JTRACE("Coordinator sends some computation information + SUSPEND");
   _exitAfterCkpt = msg.exitAfterCkpt;
 }
@@ -503,9 +505,14 @@ void DmtcpWorker::checkForDeadCoord()
 void DmtcpWorker::preCheckpoint()
 {
   JTRACE("checking if coordinator dead");
-  checkForDeadCoord();
+  // checkForDeadCoord();
 
+  JTRACE("** STAR STAR ****, expecting watcher to start");
+
+  sleep(5);
+  JTRACE("** STAR STAR ****, expecting watcher to started");
   WorkerState::setCurrentState (WorkerState::SUSPENDED);
+
   JTRACE("suspended"); 
   
 

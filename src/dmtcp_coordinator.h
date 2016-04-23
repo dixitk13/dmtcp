@@ -81,6 +81,8 @@ namespace dmtcp
 
       void onData(CoordClient *client);
       void onConnect();
+      void initZooHandle();
+      void deleteZooHandle();
       void onDisconnect(CoordClient *client);
       void eventLoop(bool daemon);
 

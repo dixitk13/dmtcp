@@ -203,14 +203,23 @@ static int createNewSocketToCoordinator(CoordinatorMode mode)
   return jalib::JClientSocket(host, port).sockfd();
 }
 
-static int createNewSocketToNewCoordinator(CoordinatorMode mode)
+static int createNewSocketToNewCoordinator()
 {
-  const char*host = NULL;
-  int port = 6669;
-  JTRACE("Creating new Socket to coord with port ")(&port);
+  // const char*host = NULL;
+  // int port = 6669;
+  // JTRACE("Creating new Socket to coord with port ")(&port);
+
+  // // CoordinatorAPI::getCoordHostAndPort(COORD_ANY, &host, &port);
+  // return jalib::JClientSocket(host, port).sockfd();
+
+  JTRACE("Creating new Socket to coord with port ")(&zooport);
 
   // CoordinatorAPI::getCoordHostAndPort(COORD_ANY, &host, &port);
-  return jalib::JClientSocket(host, port).sockfd();
+  printf("new host %s new port %d\n",zoohost, zooport );
+  char host1[] = "127.0.0.1";
+  // strncpy(zoohost, "127.0.0.1", sizeof(host1) );
+    printf("new host %s new port %d\n",zoohost, zooport );
+  return jalib::JClientSocket(zoohost, zooport).sockfd();
 }
 
 
@@ -499,16 +508,21 @@ void CoordinatorAPI::startNewCoordinator(CoordinatorMode mode)
 void CoordinatorAPI::createNewConnToCoord(CoordinatorMode mode)
 {
   if (mode & COORD_JOIN) {
+    JTRACE("***COORD_JOIN found!");
     _coordinatorSocket = createNewSocketToCoordinator(mode);
     JASSERT(_coordinatorSocket != -1) (JASSERT_ERRNO)
       .Text("Coordinator not found, but --join was specified. Exiting.");
   } else if (mode & COORD_NEW) {
+    JTRACE("***COORD_NEW found!");
     startNewCoordinator(mode);
     _coordinatorSocket = createNewSocketToCoordinator(mode);
     JASSERT(_coordinatorSocket != -1) (JASSERT_ERRNO)
       .Text("Error connecting to newly started coordinator.");
   } else if (mode & COORD_ANY) {
-    _coordinatorSocket = createNewSocketToCoordinator(mode);
+    // _coordinatorSocket = createNewSocketToCoordinator(mode);
+    JTRACE("***COORD_ANY found!");
+    _coordinatorSocket = createNewSocketToNewCoordinator();
+
     if (_coordinatorSocket == -1) {
       JTRACE("Coordinator not found, trying to start a new one.");
       startNewCoordinator(mode);
@@ -672,6 +686,7 @@ void leaderFinding(zhandle_t *zh){
   strcat(full_master_path, master_string);
   // makin NULL instead of watcher_for_wget
   rc = zoo_wget(zh, full_master_path, zookeeper::watcher_for_wget, mycontext, buffer, &len, &st);
+  // rc = zoo_wget_children(zh, full_master_path, zookeeper::watcher_for_wget, mycontext, NULL);
   buffer[strlen(buffer)] = '\0';
 
   if(rc != ZOK) {  
@@ -702,8 +717,8 @@ void initZooHandle(){
 
   printf("hello zookeeper\n");
 
-  char buffer[512];
-  zh = zookeeper_init("localhost:2181", NULL, 30000, 0, 0, 0);
+  // char buffer[512];
+  zh = zookeeper_init("localhost:2181", zookeeper::watcher, 30000, 0, 0, 0);
 
   if(!zh){
     printf("error");
@@ -711,17 +726,35 @@ void initZooHandle(){
 
 }
 
+void CoordinatorAPI::getCoordHostAndPortNew(const char **host, int *port)
+{
+  printf("get new host and port\n");
+  if(_firstTimeZoo){
+       dmtcp::initZooHandle();
+   }
+   dmtcp::leaderFinding(zh);
+  _cachedHost = zoohost;
+  _cachedPort = zooport;
+   *host = zoohost;
+   *port = zooport;
+  _firstTime = false;
+  _firstTimeZoo = false;
+
+  return;
+}
+
 void CoordinatorAPI::connectToNewCoordOnStartup()
 {
-  JTRACE("connecting to new cooordinator. Oopps!!");
-  DmtcpUniqueProcessId compId;
-  CoordinatorMode allowedModes = COORD_NEW;
-  struct in_addr localIPAddr;
+  JTRACE("connecting to new cooordinator via zookeeper");
+  // DmtcpUniqueProcessId compId;
+  // CoordinatorMode allowedModes = COORD_NEW;
+  // struct in_addr localIPAddr;
   // int altport = 6669;
-  CoordinatorInfo *coordInfo;
+  // CoordinatorInfo *coordInfo;
   
 
   if(_firstTimeZoo){
+      printf("**** in  first time zoo\n");
       dmtcp::initZooHandle();
       dmtcp::leaderFinding(zh);
   }
@@ -794,6 +827,13 @@ void CoordinatorAPI::connectToCoordOnStartup(CoordinatorMode mode,
   hello_local.virtualPid = -1;
 
   JTRACE("connectToCoordOnStartup, calling sendRecvHandshake")(progname);
+    if(_firstTimeZoo){
+      printf("************************AGAIN STAR!! in  first time zoo\n");
+      dmtcp::initZooHandle();
+      dmtcp::leaderFinding(zh);
+  }else{
+      printf("************************AGAIN STAR!! in not first time zoo\n");
+  }
   DmtcpMessage hello_remote = sendRecvHandshake(hello_local, progname);
   JTRACE("connectToCoordOnStartup, after sendRecvHandshake");
 
@@ -813,6 +853,7 @@ void CoordinatorAPI::connectToCoordOnStartup(CoordinatorMode mode,
                       &coordInfo->addrLen) == 0)
     (JASSERT_ERRNO);
   memcpy(localIP, &hello_remote.ipAddr, sizeof hello_remote.ipAddr);
+
 }
 
 void CoordinatorAPI::createNewConnectionBeforeFork(string& progname)
@@ -1160,6 +1201,7 @@ namespace zookeeper{
 void watcher_for_wget(zhandle_t *zh, int type, int state, const char *path,
              void* context)                                               
 {                         
+    printf("***watcher called\n");
     dmtcp::_firstTimeZoo = false;          
     char buffer[512];                                                                                       
     int len, rc;                                                          
@@ -1196,5 +1238,24 @@ void watcher_for_wget(zhandle_t *zh, int type, int state, const char *path,
     }                                                                         
  
     printf("Watcher context %s\n", p);
+}
+
+void watcher(zhandle_t *zh, int type, int state, const char *path,
+             void* context)                                        
+{                                                                  
+    if (type == ZOO_SESSION_EVENT) {   
+      printf("**************zoo event changed : watcher \n");                            
+        if (state == ZOO_CONNECTED_STATE) {                        
+
+        } else if (state == ZOO_AUTH_FAILED_STATE) {               
+            zookeeper_close(zh);                                  
+            exit(1);                                               
+        } else if (state == ZOO_EXPIRED_SESSION_STATE) {           
+            zookeeper_close(zh);                                  
+            exit(1);                                               
+        }                                                          
+
+    }   
+    printf("init watcher called! \n");
 }
 }
