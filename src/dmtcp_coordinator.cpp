@@ -154,7 +154,9 @@ static DmtcpCoordinator prog;
 /* master coord starts */
 static zhandle_t *zh;
 static int connected;
-struct String_vector myvector;
+
+struct String_vector myvector; 
+
 
 /* The coordinator can receive a second checkpoint request while processing the
  * first one.  If the second request comes at a point where the coordinator has
@@ -705,8 +707,6 @@ void create_ephemeral_sequential_node(const char* value, int portInt){
   printf("creating node, please implement me\n");
 
   char res[100];
-
-
   strcpy(res, value);
 
   strcat(res, ":");
@@ -728,8 +728,6 @@ void create_ephemeral_sequential_node(const char* value, int portInt){
   // string test = strcat(value , portString);
 
 
-  // char c = portno;
-  // int rc =
   zoo_acreate(zh, master_znode_base_path, res, strlen(res),
     &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE,
     zktest_string_completion, NULL);
@@ -737,7 +735,6 @@ void create_ephemeral_sequential_node(const char* value, int portInt){
     if(rc == ZOK){
       printf("creating a node with my data \n");
     }else{
-        fprintf(stderr, "Error in creating znode %d\n", rc);
          return;
     }
   */
@@ -750,7 +747,8 @@ void initZooHandle(){
         printf("error");
         return;
     }
-    fprintf(stderr, "Opened zookeeper\n");
+    fprintf(stderr, "Opened zookeeper\n");  
+
 }
 
 void deleteZooHandle(){
@@ -1097,12 +1095,14 @@ bool DmtcpCoordinator::startCheckpoint()
     JNOTE("starting checkpoint; incrementing generation; suspending all nodes")
       (s.numPeers) (compId.computationGeneration());
     // Pass number of connected peers to all clients
+
     printf("Broadcasting\n");
     
     broadcastMessage(DMT_DO_SUSPEND);
     printf("Sleeping for 4 seconds\n");
     sleep(5);
     printf("sleep over");
+
 
     // Suspend Message has been sent but the workers are still in running
     // state.  If the coordinator receives another checkpoint request from user
@@ -1536,6 +1536,7 @@ int main ( int argc, char** argv )
 
   // if ( portStr == NULL ){
   //   portStr = getenv("DMTCP_PORT"); // deprecated
+
   // }
 
   const char* hostname = coordHostname.c_str();
@@ -1543,6 +1544,7 @@ int main ( int argc, char** argv )
   create_ephemeral_sequential_node(hostname, thePort);
 
   // char zoodata[14];
+
 
   //strlen(inet_ntoa(localhostIPAddr))+strlen(portStr)+1)
   // if((zoodata = (char *) malloc(14)) != NULL){
@@ -1554,8 +1556,10 @@ int main ( int argc, char** argv )
   //    // exit?
   // }
 
+
   printf("myhostname %s \n", hostname);
   printf("myportnumber %d \n", thePort);
+
 
 #endif
 

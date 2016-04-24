@@ -414,9 +414,11 @@ void DmtcpWorker::waitForSuspendMessage()
 
   // look for new coord
   if( msg.type == DMT_LOOK_ANOTHER_COORD || msg.type == DMT_NULL ){
+
     printf("\tsleeping for 3 seconds \n");
     sleep(3);
     JTRACE("Received KILL/NULL message from coordinator, trying my new function ")(msg.type);
+
     CoordinatorAPI::instance().connectToNewCoordOnStartup();
 
     msg.type = DMT_LOOK_ANOTHER_COORD;
@@ -432,7 +434,6 @@ void DmtcpWorker::waitForSuspendMessage()
   }
 
   JASSERT(msg.type == DMT_DO_SUSPEND || msg.type == DMT_LOOK_ANOTHER_COORD) (msg.type);
-
 
   // Coordinator sends some computation information along with the SUSPEND
   // message. Extracting that.
@@ -511,12 +512,14 @@ void DmtcpWorker::preCheckpoint()
 {
   JTRACE("checking if coordinator dead");
   // checkForDeadCoord();
+
 	printf("method precheckpoint \n");
 //  printf("** STAR STAR ****, expecting watcher to start\n");
 
   //sleep(5);
   //printf("** STAR STAR ****, starting pre checkpoint\n");
   WorkerState::setCurrentState (WorkerState::SUSPENDED);
+
 
   JTRACE("suspended");
 
