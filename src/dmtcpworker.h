@@ -47,10 +47,11 @@ namespace dmtcp
       static void waitForCheckpointRequest();
       static void preCheckpoint();
       static void postCheckpoint();
+      static void startZookeeperinstance();
       static void postRestart();
 
       static void checkForDeadCoord();
-      
+
       static void resetOnFork();
       static void cleanupWorker();
 

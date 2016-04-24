@@ -1,4 +1,4 @@
-#include <pthread.h>
+  #include <pthread.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
@@ -388,10 +388,12 @@ static void *checkpointhread (void *dummy)
   while (1) {
     /* Wait a while between writing checkpoint files */
     JTRACE("before DmtcpWorker::waitForCheckpointRequest()");
+    DmtcpWorker::startZookeeperinstance();
+
     DmtcpWorker::waitForCheckpointRequest();
 
     restoreInProgress = false;
-
+  
     suspendThreads();
 
     JTRACE("Prepare plugin, etc. for checkpoint");
@@ -403,6 +405,7 @@ static void *checkpointhread (void *dummy)
     ThreadList::writeCkpt();
 
     DmtcpWorker::postCheckpoint();
+    printf(" precheckpoint post checkpoint \n");
 
     resumeThreads();
   }
@@ -946,4 +949,3 @@ void ThreadList::emptyFreeList()
 
   unlk_threads();
 }
-

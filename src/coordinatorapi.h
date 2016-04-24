@@ -59,6 +59,7 @@ namespace dmtcp
 
       static void getCoordHostAndPort(CoordinatorMode mode,
                                       const char **host, int *port);
+      static void getCoordHostAndPortNew(const char **host, int *port);
       static void setCoordPort(int port);
 
       void setupVirtualCoordinator(CoordinatorInfo *coordInfo,
@@ -67,14 +68,14 @@ namespace dmtcp
       static bool noCoordinator();
       void connectToNewCoordOnStartup();
 
-    
+
 
 
       // void watcher(zhandle_t *zzh, int type, int state, const char *path,
       //        void* context);
       void leaderFinding(zhandle_t *zh);
       void initZooHandle();
-
+      void startZookeeperinstance();
       void connectToCoordOnStartup(CoordinatorMode  mode,
                                    string           progname,
                                    DmtcpUniqueProcessId *compId,
@@ -135,5 +136,6 @@ namespace zookeeper{
   #include <zookeeper/zookeeper.h>
   void watcher_for_wget(zhandle_t *zzh, int type, int state, const char *path,
      void* context);
+  void watcher(zhandle_t *zh, int type, int state, const char *path, void *context);
 }
 #endif

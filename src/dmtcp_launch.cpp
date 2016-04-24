@@ -513,16 +513,16 @@ int main ( int argc, char** argv )
 
   JTRACE("Init the port first time");
   int port = (portStr ? jalib::StringToInt(portStr) : UNINITIALIZED_PORT);
-  
+
   // Initialize host and port now.  Will be used in low-level functions.
-  CoordinatorAPI::getCoordHostAndPort(allowedModes, &host, &port);
-  
-  JTRACE("Before connecting to connectToCoordOnStartup");
+  // CoordinatorAPI::getCoordHostAndPort(allowedModes, &host, &port);
+  CoordinatorAPI::getCoordHostAndPortNew( &host, &port);
+  JTRACE("Before connecting to connectToCoordOnStartup via zoo");
   CoordinatorAPI::instance().connectToCoordOnStartup(allowedModes, argv[0],
                                                      &compId, &coordInfo,
                                                      &localIPAddr);
-
-  JTRACE("After connecting to connectToCoordOnStartup");
+  // CoordinatorAPI::instance().connectToNewCoordOnStartup();
+  JTRACE("After connecting to connectToCoordOnStartup via zoo");
   // If port was 0, we'll get new random port when coordinator starts up.
   CoordinatorAPI::getCoordHostAndPort(allowedModes, &host, &port);
   JTRACE("getting coord host and port and writing to portfile")(thePortFile.c_str());
