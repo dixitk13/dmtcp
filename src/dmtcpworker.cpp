@@ -481,7 +481,7 @@ void DmtcpWorker::waitForCheckpointRequest()
 	printf("** method waitforCheckpointrequest**, expecting watcher to start ");
 
 	sleep(4);
-	printf("** method waitforCheckpointrequest**, watcher failed to start");
+	printf("** method waitforCheckpointrequest**, watcher flow over");
 
   JTRACE("got SUSPEND message, preparing to acquire all ThreadSync locks");
   ThreadSync::acquireLocks();
@@ -552,7 +552,7 @@ void DmtcpWorker::preCheckpoint()
 
 }
 void DmtcpWorker::startZookeeperinstance(){
-	printf("**dmtcpWorker starting zookeeperinstance from threadlist\n");
+	printf("**dmtcpWorker:: starting zookeeperinstance \n");
 	CoordinatorAPI::instance().startZookeeperinstance();
 }
 

@@ -699,7 +699,9 @@ void DmtcpCoordinator::initializeComputation()
 void zktest_string_completion (int RC, const  char * name, const  void * Data)
 {
     if (! RC) {
-        fprintf (stderr, "znode created =%s  " , name);
+        fprintf (stderr, "Znode created =%s  " , name);
+    }else{
+      printf("Problem while creating znode");
     }
 }
 
@@ -721,6 +723,14 @@ void create_ephemeral_sequential_node(const char* value, int portInt){
   strcat(res, strPort);
 
   printf("data => %s\n", res);
+  // need to create master node if doesnt exists
+  char master_path[] = "/master";
+  char value1[] = "value:10";
+  zoo_acreate(zh, master_path, value1, strlen(value1),
+    &ZOO_OPEN_ACL_UNSAFE, 0,
+    zktest_string_completion, NULL);
+    printf("create master node\n");
+  // creation of master node completed
 
   // char value1[] = "localhost-dixitk13-Virtu:921912";
   char master_znode_base_path[] = "/master/dmtcp_coord_";
@@ -731,6 +741,7 @@ void create_ephemeral_sequential_node(const char* value, int portInt){
   zoo_acreate(zh, master_znode_base_path, res, strlen(res),
     &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE,
     zktest_string_completion, NULL);
+    printf("created child node\n");
 /*
     if(rc == ZOK){
       printf("creating a node with my data \n");
