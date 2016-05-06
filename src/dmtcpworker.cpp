@@ -412,27 +412,29 @@ void DmtcpWorker::waitForSuspendMessage()
   // removing assert for now.
   // msg.assertValid();
 
-  // look for new coord 
+  // look for new coord
   if( msg.type == DMT_LOOK_ANOTHER_COORD || msg.type == DMT_NULL ){
-    printf("\tsleeping for 5 seconds \n");
-    sleep(3);    
-    JTRACE("Received KILL/NULL message from coordinator, trying my new function ")(msg.type);    
+
+    printf("\tsleeping for 3 seconds \n");
+    sleep(3);
+    JTRACE("Received KILL/NULL message from coordinator, trying my new function ")(msg.type);
+
     CoordinatorAPI::instance().connectToNewCoordOnStartup();
+
     msg.type = DMT_LOOK_ANOTHER_COORD;
-    _exitAfterCkpt = msg.exitAfterCkpt; 
+  //  _exitAfterCkpt = msg.exitAfterCkpt;
     return;
   }
 
-  if (msg.type == DMT_KILL_PEER) { 
+  if (msg.type == DMT_KILL_PEER) {
 
     JTRACE("Received KILL message from coordinator, exiting");
-    _exitAfterCkpt = msg.exitAfterCkpt;  
+    _exitAfterCkpt = msg.exitAfterCkpt;
     _exit (0);
   }
 
   JASSERT(msg.type == DMT_DO_SUSPEND || msg.type == DMT_LOOK_ANOTHER_COORD) (msg.type);
-  
-  
+
   // Coordinator sends some computation information along with the SUSPEND
   // message. Extracting that.
   SharedData::updateGeneration(msg.compGroup.computationGeneration());
@@ -452,16 +454,16 @@ void DmtcpWorker::acknowledgeSuspendMsg()
   CoordinatorAPI::instance().sendMsgToCoordinator(DmtcpMessage(DMT_OK));
 
   DmtcpMessage msg;
-  
+
   CoordinatorAPI::instance().recvMsgFromCoordinator(&msg);
 
   msg.assertValid();
   if (msg.type == DMT_KILL_PEER) {
     JTRACE("Received KILL message from coordinator, exiting");
-    
+
     _exit (0);
   }
-
+  msg.type = DMT_COMPUTATION_INFO;
   JASSERT(msg.type == DMT_COMPUTATION_INFO) (msg.type);
   JTRACE("Computation information") (msg.compGroup) (msg.numPeers);
   ProcessInfo::instance().compGroup(msg.compGroup);
@@ -476,6 +478,10 @@ void DmtcpWorker::waitForCheckpointRequest()
   WorkerState::setCurrentState (WorkerState::RUNNING);
 
   waitForSuspendMessage();
+	printf("** method waitforCheckpointrequest**, expecting watcher to start ");
+
+	sleep(4);
+	printf("** method waitforCheckpointrequest**, watcher flow over");
 
   JTRACE("got SUSPEND message, preparing to acquire all ThreadSync locks");
   ThreadSync::acquireLocks();
@@ -486,16 +492,16 @@ void DmtcpWorker::waitForCheckpointRequest()
 void DmtcpWorker::checkForDeadCoord()
 {
   DmtcpMessage msg;
-    // here  
+    // here
   CoordinatorAPI::instance().recvMsgFromCoordinator(&msg);
   JTRACE("checkin for death of coordinator: ")(msg.compGroup);
-   // look for new coord 
+   // look for new coord
   if( msg.type == DMT_LOOK_ANOTHER_COORD || msg.type == DMT_NULL ){
 
-    JTRACE("Received KILL/NULL message from coordinator, trying my new function ")(msg.type);    
+    JTRACE("Received KILL/NULL message from coordinator, trying my new function ")(msg.type);
     CoordinatorAPI::instance().connectToNewCoordOnStartup();
     msg.type = DMT_LOOK_ANOTHER_COORD;
-    // _exitAfterCkpt = msg.exitAfterCkpt; 
+    // _exitAfterCkpt = msg.exitAfterCkpt;
     return;
   }
 
@@ -507,16 +513,18 @@ void DmtcpWorker::preCheckpoint()
   JTRACE("checking if coordinator dead");
   // checkForDeadCoord();
 
-  JTRACE("** STAR STAR ****, expecting watcher to start");
+	printf("method precheckpoint \n");
+//  printf("** STAR STAR ****, expecting watcher to start\n");
 
-  sleep(5);
-  JTRACE("** STAR STAR ****, expecting watcher to started");
+  //sleep(5);
+  //printf("** STAR STAR ****, starting pre checkpoint\n");
   WorkerState::setCurrentState (WorkerState::SUSPENDED);
 
-  JTRACE("suspended"); 
-  
 
-  
+  JTRACE("suspended");
+
+
+
   if (exitInProgress()) {
     JTRACE("exitInProgress preCheckpoint");
     ThreadSync::destroyDmtcpWorkerLockUnlock();
@@ -541,7 +549,11 @@ void DmtcpWorker::preCheckpoint()
 
   // checkForDeadCoord();
   // JTRACE("checking if coordinator dead");
-  
+
+}
+void DmtcpWorker::startZookeeperinstance(){
+	printf("**dmtcpWorker:: starting zookeeperinstance \n");
+	CoordinatorAPI::instance().startZookeeperinstance();
 }
 
 void DmtcpWorker::postCheckpoint()
@@ -551,7 +563,7 @@ void DmtcpWorker::postCheckpoint()
 
   // checkForDeadCoord();
   // JTRACE("checking if coordinator dead");
-  
+
 
    if (_exitAfterCkpt) {
     JTRACE("Asked to exit after checkpoint. Exiting!");
@@ -562,10 +574,10 @@ void DmtcpWorker::postCheckpoint()
 
   // Inform Coordinator of RUNNING state.
   WorkerState::setCurrentState( WorkerState::RUNNING );
-  
+
   // checkForDeadCoord();
   // JTRACE("checking if coordinator dead");
-  
+
   CoordinatorAPI::instance().sendMsgToCoordinator(DmtcpMessage(DMT_OK));
 }
 

@@ -154,7 +154,9 @@ static DmtcpCoordinator prog;
 /* master coord starts */
 static zhandle_t *zh;
 static int connected;
+
 struct String_vector myvector; 
+
 
 /* The coordinator can receive a second checkpoint request while processing the
  * first one.  If the second request comes at a point where the coordinator has
@@ -328,7 +330,7 @@ void DmtcpCoordinator::handleUserCommand(char cmd, DmtcpMessage* reply /*= NULL*
       clients[i]->sock().close();
     }
     listenSock->close();
-    preExitCleanup(); 
+    preExitCleanup();
     JTRACE ("Exiting no cleanup...");
     exit ( 0 );
     break;
@@ -697,7 +699,9 @@ void DmtcpCoordinator::initializeComputation()
 void zktest_string_completion (int RC, const  char * name, const  void * Data)
 {
     if (! RC) {
-        fprintf (stderr, "znode created =%s  " , name);
+        fprintf (stderr, "Znode created =%s  " , name);
+    }else{
+      printf("Problem while creating znode");
     }
 }
 
@@ -705,22 +709,28 @@ void create_ephemeral_sequential_node(const char* value, int portInt){
   printf("creating node, please implement me\n");
 
   char res[100];
-  
-
   strcpy(res, value);
 
   strcat(res, ":");
 
-  
+
   // strcat(res, (char) thePort);
 
   char strPort[10];
   sprintf(strPort, "%d", portInt);
   printf("ssss %s\n", strPort);
-  
+
   strcat(res, strPort);
 
   printf("data => %s\n", res);
+  // need to create master node if doesnt exists
+  char master_path[] = "/master";
+  char value1[] = "value:10";
+  zoo_acreate(zh, master_path, value1, strlen(value1),
+    &ZOO_OPEN_ACL_UNSAFE, 0,
+    zktest_string_completion, NULL);
+    printf("create master node\n");
+  // creation of master node completed
 
   // char value1[] = "localhost-dixitk13-Virtu:921912";
   char master_znode_base_path[] = "/master/dmtcp_coord_";
@@ -728,16 +738,14 @@ void create_ephemeral_sequential_node(const char* value, int portInt){
   // string test = strcat(value , portString);
 
 
-  // char c = portno;
-  // int rc = 
   zoo_acreate(zh, master_znode_base_path, res, strlen(res),
-    &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, 
+    &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE,
     zktest_string_completion, NULL);
+    printf("created child node\n");
 /*
     if(rc == ZOK){
       printf("creating a node with my data \n");
     }else{
-        fprintf(stderr, "Error in creating znode %d\n", rc);  
          return;
     }
   */
@@ -751,6 +759,7 @@ void initZooHandle(){
         return;
     }
     fprintf(stderr, "Opened zookeeper\n");  
+
 }
 
 void deleteZooHandle(){
@@ -842,7 +851,7 @@ void DmtcpCoordinator::onConnect()
 
   // If no client is connected to Coordinator, then there can be only zero data
   // sockets OR there can be one data socket and that should be STDIN.
-  if (clients.size() == 0) {  
+  if (clients.size() == 0) {
     initializeComputation();
   }
 
@@ -861,7 +870,7 @@ void DmtcpCoordinator::onConnect()
     client->virtualPid(hello_remote.from.pid());
     _virtualPidToClientMap[client->virtualPid()] = client;
   } else if (hello_remote.type == DMT_NEW_WORKER) {
-    
+
     JTRACE(" DMT_NEW_WORKER.. state ")(hello_remote.state);
     JASSERT(hello_remote.state == WorkerState::RUNNING ||
             hello_remote.state == WorkerState::UNKNOWN);
@@ -1097,11 +1106,15 @@ bool DmtcpCoordinator::startCheckpoint()
     JNOTE("starting checkpoint; incrementing generation; suspending all nodes")
       (s.numPeers) (compId.computationGeneration());
     // Pass number of connected peers to all clients
-    printf("Sleeping for 4 seconds\n");  
-    // sleep(8);
+
+    printf("Broadcasting\n");
+    
     broadcastMessage(DMT_DO_SUSPEND);
-    
-    
+    printf("Sleeping for 4 seconds\n");
+    sleep(5);
+    printf("sleep over");
+
+
     // Suspend Message has been sent but the workers are still in running
     // state.  If the coordinator receives another checkpoint request from user
     // at this point, it should fail.
@@ -1534,14 +1547,16 @@ int main ( int argc, char** argv )
 
   // if ( portStr == NULL ){
   //   portStr = getenv("DMTCP_PORT"); // deprecated
-  // } 
-  
+
+  // }
+
   const char* hostname = coordHostname.c_str();
- 
+
   create_ephemeral_sequential_node(hostname, thePort);
 
   // char zoodata[14];
-  
+
+
   //strlen(inet_ntoa(localhostIPAddr))+strlen(portStr)+1)
   // if((zoodata = (char *) malloc(14)) != NULL){
       // zoodata[0] = '\0';   // ensures the memory is an empty string
@@ -1551,10 +1566,12 @@ int main ( int argc, char** argv )
   //     printf("malloc failed!\n");
   //    // exit?
   // }
-  
+
+
   printf("myhostname %s \n", hostname);
   printf("myportnumber %d \n", thePort);
-  
+
+
 #endif
 
   if (daemon) {

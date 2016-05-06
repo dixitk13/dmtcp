@@ -513,7 +513,7 @@ int main ( int argc, char** argv )
 
   JTRACE("Init the port first time");
   int port = (portStr ? jalib::StringToInt(portStr) : UNINITIALIZED_PORT);
-  
+
   // Initialize host and port now.  Will be used in low-level functions.
   // CoordinatorAPI::getCoordHostAndPort(allowedModes, &host, &port);
   CoordinatorAPI::getCoordHostAndPortNew( &host, &port);

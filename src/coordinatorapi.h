@@ -68,14 +68,14 @@ namespace dmtcp
       static bool noCoordinator();
       void connectToNewCoordOnStartup();
 
-    
+
 
 
       // void watcher(zhandle_t *zzh, int type, int state, const char *path,
       //        void* context);
       void leaderFinding(zhandle_t *zh);
       void initZooHandle();
-
+      void startZookeeperinstance();
       void connectToCoordOnStartup(CoordinatorMode  mode,
                                    string           progname,
                                    DmtcpUniqueProcessId *compId,
@@ -137,7 +137,7 @@ namespace zookeeper{
   void watcher_for_wget(zhandle_t *zzh, int type, int state, const char *path,
      void* context);
 
-  void watcher(zhandle_t *zh, int type, int state, const char *path,
-             void* context);  
+  void watcher(zhandle_t *zh, int type, int state, const char *path, void *context);
+
 }
 #endif
